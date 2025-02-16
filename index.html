@@ -1,1 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Editor</title>
+
+    <!-- Include the SheetJS and Handsontable Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.1/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.1/dist/handsontable.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #4CAF50;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        input[type="file"]:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #excelContainer {
+            margin-top: 20px;
+            width: 90%;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Excel Editor</h1>
+
+    <!-- Upload Excel File -->
+    <input type="file" id="upload" accept=".xls,.xlsx" />
+
+    <!-- Excel Table Container -->
+    <div id="excelContainer"></div>
+
+    <!-- Download Button -->
+    <button id="download">Download Edited Excel</button>
+
+    <script>
+        let hotInstance;
+
+        document.getElementById('upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Get the first worksheet
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+
+                // Convert sheet to JSON (array of arrays)
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                // Initialize Handsontable
+                const container = document.getElementById('excelContainer');
+                if (hotInstance) {
+                    hotInstance.destroy();
+                }
+                hotInstance = new Handsontable(container, {
+                    data: jsonData,
+                    rowHeaders: true,
+                    colHeaders: true,
+                    contextMenu: true,
+                    licenseKey: 'non-commercial-and-evaluation' // Free for non-commercial use
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Download Edited Excel
+        document.getElementById('download').addEventListener('click', function() {
+            if (!hotInstance) return alert("Upload an Excel file first!");
+
+            const editedData = hotInstance.getData();
+
+            // Convert data to worksheet and workbook
+            const ws = XLSX.utils.aoa_to_sheet(editedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "EditedSheet");
+
+            // Download the updated Excel file
+            XLSX.writeFile(wb, "edited_excel.xlsx");
+        });
+    </script>
+
+</body>
+
+</html>
